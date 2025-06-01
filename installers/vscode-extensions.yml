@@ -27,7 +27,6 @@
         msg: |
           ✅ DX Environment Setup Complete!
           
-          📱 Installed {{ development_apps | length }} applications
           🔌 Configured VSCode with {{ vscode_extensions | length }} extensions  
           💡 You may need to restart your terminal to see the new aliases
           🚀 Happy coding!
