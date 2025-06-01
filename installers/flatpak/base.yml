@@ -1,0 +1,35 @@
+---
+- name: Install Base Flatpaks
+  hosts: localhost
+  connection: local
+
+  vars:
+    base_apps:
+      - io.github.equicord.equibop/x86_64/stable
+      - app.zen_browser.zen/x86_64/stable
+      - md.obsidian.Obsidian
+      - com.bitwarden.desktop
+      - org.gnome.World.PikaBackup
+      - org.qbittorrent.qBittorrent
+      - com.spotify.Client
+  
+  tasks:
+    - name: Add Flathub repository
+      flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+        method: user
+
+    - name: "Install Flatpaks"
+      flatpak:
+        name: "{{ item }}"
+        state: present
+        method: user
+        remote: flathub
+      loop: "{{ base_apps }}"
+      register: flatpak_results
+
+    - name: Print completion message
+      debug:
+        msg: "✅ Setup complete!"
