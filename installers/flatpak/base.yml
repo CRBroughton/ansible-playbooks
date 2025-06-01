@@ -10,7 +10,7 @@
       - md.obsidian.Obsidian
       - com.bitwarden.desktop
       - org.gnome.World.PikaBackup
-      - org.qbittorrent.qBittorrent
+      - com.transmissionbt.Transmission
       - com.spotify.Client
   
   tasks:
