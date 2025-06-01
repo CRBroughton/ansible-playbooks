@@ -2,18 +2,42 @@
 - name: DX Development Environment Setup
   hosts: localhost
   connection: local
-
+  
   vars:
     vscode_extensions:
-    - bradlc.vscode-tailwindcss
-
+      - bradlc.vscode-tailwindcss
+      - vivaxy.vscode-conventional-commits
+      - JakeBecker.elixir-ls
+      - usernamehw.errorlens
+      - dbaeumer.vscode-eslint
+      - Gxl.git-graph-3
+      - eamodio.gitlens
+      - golang.go
+      - antfu.goto-alias
+      - CraigRBroughton.htmx-attributes
+      - afzalsayed96.icones
+      - antfu.iconify
+      - MariusAlchimavicius.json-to-ts
+      - CraigRBroughton.modern-vue-snippets
+      - antfu.pnpm-catalog-lens
+      - boydmeyer.pop-dark
+      - YoavBls.pretty-ts-errors
+      - Orta.vscode-twoslash-queries
+      - antfu.unocss
+      - antfu.theme-vitesse
+      - Vue.volar
+      - ziglang.vscode-zig
+      - Catppuccin.catppuccin-vsc-icons
+      - vscode-icons-team.vscode-icons
+      
+  
   tasks:
-    - name: "🔍 Check if VSCode is installed"
+    - name: "Check if VSCode is installed"
       command: which code
       register: vscode_check
       failed_when: false
       changed_when: false
-    
+      
     - name: "Install VSCode extensions"
       shell: "code --install-extension {{ item }}"
       loop: "{{ vscode_extensions }}"
@@ -21,12 +45,7 @@
       register: extension_results
       failed_when: extension_results.rc != 0 and "already installed" not in extension_results.stderr
       changed_when: "'successfully installed' in extension_results.stdout"
-
+      
     - name: "Setup Summary"
       debug:
-        msg: |
-          ✅ DX Environment Setup Complete!
-          
-          🔌 Configured VSCode with {{ vscode_extensions | length }} extensions  
-          💡 You may need to restart your terminal to see the new aliases
-          🚀 Happy coding!
+        msg: "VSCode extensions installed successfully!"

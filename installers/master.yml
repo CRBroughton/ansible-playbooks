@@ -1,0 +1,33 @@
+---
+- name: Complete DX Environment Setup
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: "🚀 Starting complete DX setup"
+      debug:
+        msg: "Setting up your complete development environment..."
+
+    - name: "📦 Run Flatpaks setup"
+      include: flatpak/base.yml
+
+    - name: "🔌 Run VSCode extensions setup"
+      include: vscode-extensions.yml
+
+    - name: "✅ Create completion marker"
+      file:
+        path: "{{ ansible_user_dir }}/.dx-setup-complete"
+        state: touch
+
+    - name: "🎉 Complete setup finished"
+      debug:
+        msg: |
+          ✅ Complete DX Environment Setup Finished!
+
+          📱 Applications installed via Flatpak
+          📁 Development directories created
+          🔌 VSCode extensions configured
+          🐚 Shell aliases added
+
+          💡 Restart your terminal to use new aliases
+          🚀 Your development environment is ready!
