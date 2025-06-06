@@ -1,0 +1,20 @@
+---
+- name: Validate layer name - no numbers
+  fail:
+    msg: "Layer name cannot contain numbers. Please use only letters and hyphens."
+  when: layer_name | regex_search('[0-9]')
+
+- name: Validate layer name - format check
+  fail:
+    msg: "Layer name must contain only letters, hyphens, and underscores."
+  when: not (layer_name | regex_search('^[a-zA-Z][a-zA-Z_-]*$'))
+
+- name: Validate layer name - not empty
+  fail:
+    msg: "Layer name cannot be empty."
+  when: layer_name | length == 0
+
+- name: Validate layer name - minimum length
+  fail:
+    msg: "Layer name must be at least 2 characters long."
+  when: layer_name | length < 2

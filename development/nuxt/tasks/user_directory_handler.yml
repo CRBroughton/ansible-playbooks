@@ -1,0 +1,82 @@
+# tasks/user_directory_handler.yml
+# Reusable task file for handling user directory selection and validation
+# 
+# Usage:
+#   - include_tasks: tasks/user_directory_handler.yml
+#     vars:
+#       prompt_message: "Select target directory for your project"  # Optional custom message
+#       max_depth: 3  # Optional, defaults to 2
+#       require_existing: true  # Optional, defaults to true
+#
+# Returns:
+#   - user_cwd: User's current working directory
+#   - final_target_folder: Validated absolute path to target directory
+
+---
+- name: Get user's current working directory
+  set_fact:
+    user_cwd: "{{ lookup('env', 'PWD') | default(ansible_env.PWD) }}"
+
+- name: Debug user's current directory
+  debug:
+    msg: "User's current directory: {{ user_cwd }}"
+  when: debug_mode | default(false)
+
+- name: Set default target folder to user's current directory
+  set_fact:
+    target_folder: "{{ target_folder | default(user_cwd) }}"
+
+- name: Set directory search depth
+  set_fact:
+    search_depth: "{{ max_depth | default(2) }}"
+
+- name: Set custom prompt message
+  set_fact:
+    directory_prompt: "{{ prompt_message | default('Select target directory') }}"
+
+# Interactive folder selection if not provided via command line
+- name: Select target folder
+  pause:
+    prompt: |
+      {{ directory_prompt }}:
+      Available directories:
+      {{ lookup('pipe', 'cd "' + user_cwd + '" && find . -maxdepth ' + (search_depth | string) + ' -type d -not -path "*/\\.*" | sort | nl -w2 -s". "') }}
+      
+      Enter target folder path (or press Enter for current directory '.')
+  register: folder_input
+  when: target_folder == user_cwd
+
+- name: Set final target folder from input
+  set_fact:
+    final_target_folder: "{{ folder_input.user_input if (folder_input is defined and folder_input.user_input != '') else target_folder }}"
+
+# Convert relative paths to absolute paths based on user's location
+- name: Convert to absolute path if relative
+  set_fact:
+    final_target_folder: "{{ (user_cwd + '/' + final_target_folder) | regex_replace('/\\./', '/') | regex_replace('/\\.$', '') if not (final_target_folder | regex_search('^/')) else final_target_folder }}"
+
+- name: Verify target folder exists
+  stat:
+    path: "{{ final_target_folder }}"
+  register: folder_stat
+  when: require_existing | default(true)
+
+- name: Fail if target folder doesn't exist
+  fail:
+    msg: "Directory '{{ final_target_folder }}' does not exist!"
+  when: 
+    - require_existing | default(true)
+    - not folder_stat.stat.exists or not folder_stat.stat.isdir
+
+- name: Create target folder if it doesn't exist
+  file:
+    path: "{{ final_target_folder }}"
+    state: directory
+  when: 
+    - not (require_existing | default(true))
+    - folder_stat is defined
+    - not folder_stat.stat.exists
+
+- name: Display selected target folder
+  debug:
+    msg: "Target folder set to: {{ final_target_folder }}"

@@ -1,0 +1,17 @@
+# vars/name_transformers.yml
+---
+# Common regex patterns for validation
+validation_patterns:
+  no_numbers: '[0-9]'
+  valid_name: '^[a-zA-Z][a-zA-Z_-]*'
+  pascal_case: '^[A-Z][a-zA-Z0-9]*'
+  kebab_case: '^[a-z][a-z0-9-]*'
+
+# Regex transformation patterns (for use in templates)
+transform_patterns:
+  kebab_regex1: '([A-Z])'
+  kebab_replace1: '-\1'
+  kebab_regex2: '^-'
+  kebab_replace2: ''
+  pascal_regex: '[^a-zA-Z0-9]'
+  pascal_replace: ''

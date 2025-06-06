@@ -1,0 +1,77 @@
+---
+- name: Generate Nuxt Layer
+  hosts: localhost
+  gather_facts: false
+  vars_prompt:
+    - name: layer_name
+      prompt: "Layer name please (letters and hyphens only)"
+      private: false
+  vars:
+    input_name: "{{ layer_name }}"
+  vars_files:
+    - vars/name_transformers.yml
+  tasks:
+    # Use the reusable directory handler
+    - name: Handle user directory selection
+      include_tasks: tasks/user_directory_handler.yml
+      vars:
+        prompt_message: "Select target directory for your Nuxt layer"
+        max_depth: 3
+        require_existing: true
+
+    # Transform the input layer name into various naming conventions
+    - name: Set transformed names
+      set_fact:
+        layer_path: "{{ final_target_folder }}/{{ layer_name | regex_replace(transform_patterns.kebab_regex1, transform_patterns.kebab_replace1) | lower | regex_replace(transform_patterns.kebab_regex2, transform_patterns.kebab_replace2) }}"
+        pascal_name: "{{ layer_name | title | regex_replace(transform_patterns.pascal_regex, transform_patterns.pascal_replace) }}"
+        kebab_name: "{{ layer_name | regex_replace(transform_patterns.kebab_regex1, transform_patterns.kebab_replace1) | lower | regex_replace(transform_patterns.kebab_regex2, transform_patterns.kebab_replace2) }}"
+
+    # Validate the layer name meets our naming requirements
+    - name: Validate layer name
+      include_tasks: validators/layer_name.yml
+
+    # Create the directory structure for the Nuxt layer
+    - name: Create layer directory structure
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ layer_path }}"
+        - "{{ layer_path }}/components"
+        - "{{ layer_path }}/composables"
+        - "{{ layer_path }}/pages"
+
+    # Generate the core Nuxt layer configuration file
+    - name: Generate nuxt.config.ts
+      template:
+        src: templates/nuxt.config.ts.j2
+        dest: "{{ layer_path }}/nuxt.config.ts"
+
+    # Generate a sample README file for the layer
+    - name: Generate README file
+      template:
+        src: templates/README.md.j2
+        dest: "{{ layer_path }}/README.md"      
+
+    # Generate a sample Vue component for the layer
+    - name: Generate component
+      template:
+        src: templates/component.vue.j2
+        dest: "{{ layer_path }}/components/{{ pascal_name }}Component.vue"
+
+    # Generate a sample composable for the layer
+    - name: Generate composable
+      template:
+        src: templates/composable.ts.j2
+        dest: "{{ layer_path }}/composables/use{{ pascal_name }}.ts"
+
+    # Generate the index page that demonstrates the layer functionality
+    - name: Generate index page
+      template:
+        src: templates/page.vue.j2
+        dest: "{{ layer_path }}/pages/index.vue"
+
+    # Display success message with the created layer path
+    - name: Display success message
+      debug:
+        msg: "✅ Nuxt layer '{{ layer_name }}' created successfully at {{ layer_path }}"

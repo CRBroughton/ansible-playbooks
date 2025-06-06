@@ -1,0 +1,16 @@
+<template>
+  <div>
+    <h1>{{ pascal_name }} Layer</h1>
+    <{{ pascal_name }}Component />
+    
+    <div>
+      <p>Count: {{ "{{ count }}" }}</p>
+      <button @click="increment">+</button>
+      <button @click="decrement">-</button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+const { count, increment, decrement } = use{{ pascal_name }}()
+</script>
