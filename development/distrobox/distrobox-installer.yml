@@ -21,7 +21,7 @@
         additional_playbooks:
           - "installers/install-laravel.yml"
           - "installers/install-volta.yml"
-        completion_playbook: "completion-laravel.yml"
+        completion_playbook: "completions/completion-laravel.yml"
       
       go:
         name: "Go Development"
@@ -31,7 +31,7 @@
         wait_time: 30
         additional_playbooks:
           - "installers/install-go.yml"
-        completion_playbook: "completion-go.yml"
+        completion_playbook: "completions/completion-go.yml"
       
       nuxt:
         name: "Nuxt.js Development"
@@ -42,7 +42,7 @@
         additional_playbooks:
           - "installers/install-volta.yml"
           - "installers/install-bun.yml"
-        completion_playbook: "completion-nuxt.yml"
+        completion_playbook: "completions/completion-nuxt.yml"
     
     # Selected environment (can be overridden with -e env_name=laravel)
     selected_environment: "{{ env_name | default('default') }}"
