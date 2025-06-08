@@ -1,0 +1,20 @@
+---
+- name: Display Nuxt.js environment completion message
+  debug:
+    msg:
+      - "🚀 Nuxt.js development environment setup complete!"
+      - ""
+      - "📝 Create a new Nuxt project:"
+      - "   npx nuxi@latest init my-nuxt-app"
+      - "   cd my-nuxt-app"
+      - ""
+      - "📦 Install dependencies:"
+      - "   npm i"
+      - ""
+      - "🔨 Build your application:"
+      - "   npm run build"
+      - ""
+      - "🚀 Start development server:"
+      - "   npm run dev"
+      - ""
+      - "📚 Nuxt documentation: https://nuxt.com/docs"

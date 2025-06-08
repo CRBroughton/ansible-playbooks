@@ -1,0 +1,70 @@
+---
+- name: Install Elixir development environment
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Update package cache (Fedora/RHEL)
+      dnf:
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Update package cache (Debian/Ubuntu)
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install Elixir and Erlang (Fedora Rawhide)
+      dnf:
+        name:
+          - elixir
+          - elixir-doc
+          - erlang
+          - erlang-doc
+          - git
+          - curl
+        state: present
+        enablerepo: rawhide
+      when: ansible_os_family == "RedHat"
+
+    - name: Install Elixir and Erlang (Debian/Ubuntu)
+      apt:
+        name:
+          - elixir
+          - erlang
+          - erlang-doc
+          - git
+          - curl
+          - build-essential
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Verify Elixir installation
+      shell: elixir --version
+      register: elixir_version_check
+      changed_when: false
+      become: false
+
+    - name: Verify Erlang installation
+      shell: erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell
+      register: erlang_version_check
+      changed_when: false
+      become: false
+
+    - name: Install Hex package manager
+      shell: mix local.hex --force
+      become: false
+
+    - name: Install Phoenix archive
+      shell: mix archive.install hex phx_new --force
+      become: false
+
+    - name: Display installation completion
+      debug:
+        msg:
+          - "Elixir development environment installed successfully!"
+          - "Elixir version: {{ elixir_version_check.stdout_lines[0] }}"
+          - "Erlang/OTP version: {{ erlang_version_check.stdout }}"
+          - "Hex package manager installed"
+          - "Phoenix framework archive installed"

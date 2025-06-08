@@ -1,0 +1,59 @@
+---
+- name: Install Laravel Development Environment
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  vars:
+    php_version: "8.4"
+    
+  tasks:
+    - name: Install PHP 8.4 using php.new installer
+      shell: |
+        /bin/bash -c "$(curl -fsSL https://php.new/install/linux/8.4)"
+      args:
+        creates: /usr/local/bin/php8.4
+        executable: /bin/bash
+      register: php_install_result
+      changed_when: php_install_result.rc == 0
+
+    - name: Install Laravel installer globally via Composer
+      shell: composer global require laravel/installer
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/root/.composer/vendor/bin:{{ ansible_env.HOME }}/.composer/vendor/bin"
+      register: laravel_install
+      changed_when: "'Installing' in laravel_install.stdout or 'Updating' in laravel_install.stdout"
+
+    - name: Install Node.js via Volta
+      shell: volta install node
+      environment:
+        PATH: "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/.volta/bin"
+      register: node_install
+      changed_when: "'installed' in node_install.stdout"
+
+    - name: Check if package.json exists in current directory
+      stat:
+        path: "{{ ansible_env.PWD }}/package.json"
+      register: package_json_check
+
+    - name: Display installation summary
+      debug:
+        msg: 
+          - "Laravel development environment setup complete!"
+          - "PHP {{ php_version }} installed"
+          - "Volta and Node.js configured"
+          - "Laravel installer available globally"
+          - ""
+          - "To create a new Laravel project, run:"
+          - "laravel new example-app"
+          - ""
+          - "Once the application has been created, navigate to it and set it up:"
+          - "cd example-app"
+          - ""
+          - "Pin the Node.js version for the project:"
+          - "volta pin node"
+          - ""
+          - "Install dependencies and build assets:"
+          - "npm install && npm run build"
+          - ""
+          - "Start Laravel's local development server:"
+          - "composer run dev"

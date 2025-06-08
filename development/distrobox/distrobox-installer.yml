@@ -1,0 +1,224 @@
+---
+- name: Create Distrobox container and run additional playbooks
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    # Preconfigured environments
+    environments:
+      default:
+        name: "Default Environment"
+        description: "Basic container with custom playbooks"
+        container_name: "ansible-container"
+        container_image: "ubuntu:22.04"
+        wait_time: 30
+      
+      laravel:
+        name: "Laravel Development"
+        description: "PHP, Composer, Laravel, and Node.js via Volta"
+        container_name: "laravel-dev"
+        container_image: "fedora:41"
+        wait_time: 45
+        additional_playbooks:
+          - "installers/install-laravel.yml"
+          - "installers/install-volta.yml"
+        completion_playbook: "completion-laravel.yml"
+      
+      go:
+        name: "Go Development"
+        description: "Go programming language with common tools"
+        container_name: "go-dev"
+        container_image: "fedora:41"
+        wait_time: 30
+        additional_playbooks:
+          - "installers/install-go.yml"
+        completion_playbook: "completion-go.yml"
+      
+      nuxt:
+        name: "Nuxt.js Development"
+        description: "Nuxt.js with Node.js via Volta"
+        container_name: "nuxt-dev"
+        container_image: "ubuntu:22.04"
+        wait_time: 40
+        additional_playbooks:
+          - "installers/install-volta.yml"
+          - "installers/install-bun.yml"
+        completion_playbook: "completion-nuxt.yml"
+    
+    # Selected environment (can be overridden with -e env_name=laravel)
+    selected_environment: "{{ env_name | default('default') }}"
+    
+    # Current environment configuration
+    current_env: "{{ environments[selected_environment] }}"
+    container_name: "{{ current_env.container_name }}"
+    container_image: "{{ current_env.container_image }}"
+    wait_time: "{{ current_env.wait_time }}"
+    additional_playbooks: "{{ current_env.additional_playbooks }}"
+    
+  tasks:
+    - name: Display available environments
+      debug:
+        msg: |
+          Available environments:
+          {% for env_key, env_value in environments.items() %}
+          - {{ env_key }}: {{ env_value.name }}
+            {{ env_value.description }}
+          {% endfor %}
+          
+          Selected environment: {{ selected_environment }}
+          
+    - name: Validate selected environment
+      fail:
+        msg: "Environment '{{ selected_environment }}' not found. Available: {{ environments.keys() | list | join(', ') }}"
+      when: environments[selected_environment] is not defined
+
+    - name: Display selected environment details
+      debug:
+        msg: |
+          Using {{ current_env.name }}:
+          - Container: {{ container_name }}
+          - Image: {{ container_image }}
+          - Wait time: {{ wait_time }}s
+          - Playbooks: {{ additional_playbooks | join(', ') }}
+
+    - name: Check if distrobox is installed
+      command: which distrobox
+      register: distrobox_check
+      failed_when: false
+      changed_when: false
+
+    - name: Fail if distrobox is not installed
+      fail:
+        msg: "Distrobox is not installed. Please install distrobox first."
+      when: distrobox_check.rc != 0
+
+    - name: Check if container already exists
+      command: distrobox list --no-color
+      register: existing_containers
+      changed_when: false
+
+    - name: Create distrobox container
+      command: >
+        distrobox create 
+        --name {{ container_name }}
+        --image {{ container_image }}
+        --yes
+      when: container_name not in existing_containers.stdout
+      register: container_created
+
+    - name: Display container creation status
+      debug:
+        msg: "Container '{{ container_name }}' created successfully"
+      when: container_created is changed
+
+    - name: Display existing container status
+      debug:
+        msg: "Container '{{ container_name }}' already exists"
+      when: container_created is not changed
+
+    - name: Start the container (if not running)
+      command: distrobox enter {{ container_name }} -- echo "Container started"
+      register: container_start
+      changed_when: false
+
+    - name: Wait for container to be fully ready
+      pause:
+        seconds: "{{ wait_time }}"
+        prompt: "Waiting {{ wait_time }} seconds for container to be fully ready..."
+
+    - name: Verify container is accessible
+      command: distrobox enter {{ container_name }} -- whoami
+      register: container_test
+      changed_when: false
+
+    - name: Display container access verification
+      debug:
+        msg: "Container is accessible. Current user: {{ container_test.stdout }}"
+
+    - name: Install ansible in container (if needed)
+      command: >
+        distrobox enter {{ container_name }} -- 
+        bash -c "
+        if ! command -v ansible-playbook &> /dev/null; then
+          if command -v apt &> /dev/null; then
+            sudo apt update && sudo apt install -y ansible
+          elif command -v dnf &> /dev/null; then
+            sudo dnf install -y ansible
+          elif command -v pacman &> /dev/null; then
+            sudo pacman -Sy --noconfirm ansible
+          elif command -v zypper &> /dev/null; then
+            sudo zypper install -y ansible
+          else
+            echo 'Package manager not supported for automatic ansible installation'
+            exit 1
+          fi
+        fi
+        "
+      register: ansible_install
+      when: additional_playbooks | length > 0
+
+    - name: Check if playbook exists on host
+      stat:
+        path: "{{ item }}"
+      register: playbook_stat
+      loop: "{{ additional_playbooks }}"
+      when: additional_playbooks | length > 0
+
+    - name: Display playbook status
+      debug:
+        msg: "Running playbook: {{ item.item }}"
+      loop: "{{ playbook_stat.results | default([]) }}"
+      when: 
+        - additional_playbooks | length > 0
+        - item.stat.exists
+
+    - name: Copy playbook to container home directory
+      command: >
+        distrobox enter {{ container_name }} -- 
+        cp "{{ item.item | realpath }}" "$HOME/{{ item.item | basename }}"
+      loop: "{{ playbook_stat.results | default([]) }}"
+      when: 
+        - additional_playbooks | length > 0
+        - item.stat.exists
+
+    - name: Run playbook inside container
+      command: >
+        distrobox enter {{ container_name }} -- 
+        ansible-playbook "$HOME/{{ item.item | basename }}"
+      register: playbook_results
+      loop: "{{ playbook_stat.results | default([]) }}"
+      when: 
+        - additional_playbooks | length > 0
+        - item.stat.exists
+
+    - name: Display playbook execution results
+      debug:
+        msg: |
+          Playbook {{ item.item.item | basename }} execution completed
+          Return code: {{ item.rc | default('N/A') }}
+      loop: "{{ playbook_results.results | default([]) }}"
+      when: 
+        - additional_playbooks | length > 0
+        - not item.skipped | default(false)
+
+    - name: Warn about missing playbooks
+      debug:
+        msg: "Warning: Playbook {{ item.item }} not found, skipping..."
+      loop: "{{ playbook_stat.results | default([]) }}"
+      when: 
+        - additional_playbooks | length > 0
+        - not item.stat.exists
+
+    - name: Display completion message
+      debug:
+        msg: |
+          Distrobox container '{{ container_name }}' is ready!
+          - Environment: {{ current_env.name }}
+          - Image: {{ container_image }}
+          - Access with: distrobox enter {{ container_name }}
+          {% if additional_playbooks | length > 0 %}
+          - Executed {{ additional_playbooks | length }} additional playbook(s)
+          {% endif %}
+
+    - name: Run completion playbook
+      include_tasks: "{{ current_env.completion_playbook }}"
+      when: current_env.completion_playbook is defined

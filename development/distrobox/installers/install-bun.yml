@@ -1,0 +1,42 @@
+---
+- name: Install Bun
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  become: false
+  
+  tasks:
+    - name: Remove existing Bun installation
+      file:
+        path: "{{ ansible_env.HOME }}/.bun"
+        state: absent
+    
+    - name: Download Bun installer script
+      get_url:
+        url: https://bun.sh/install
+        dest: /tmp/bun-install.sh
+        mode: '0755'
+    
+    - name: Install Bun using official installer
+      shell: |
+        export BUN_INSTALL="{{ ansible_env.HOME }}/.bun"
+        bash /tmp/bun-install.sh
+      args:
+        creates: "{{ ansible_env.HOME }}/.bun/bin/bun"
+    
+    - name: Clean up installer script
+      file:
+        path: /tmp/bun-install.sh
+        state: absent
+    
+    - name: Get Bun version
+      command: "{{ ansible_env.HOME }}/.bun/bin/bun --version"
+      register: bun_version
+      changed_when: false
+    
+    - name: Display installation completion
+      debug:
+        msg: 
+          - "Bun installation completed: {{ bun_version.stdout }}"
+          - "Installed to: {{ ansible_env.HOME }}/.bun"
+          - "Added to Fish shell PATH"

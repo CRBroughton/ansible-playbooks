@@ -1,0 +1,24 @@
+---
+- name: Display Elixir environment completion message
+  debug:
+    msg:
+      - "🚀 Elixir development environment setup complete!"
+      - ""
+      - "📝 Create a new Elixir project:"
+      - "   mix new my_project"
+      - "   cd my_project"
+      - ""
+      - "📦 Get dependencies:"
+      - "   mix deps.get"
+      - ""
+      - "🔨 Compile and run tests:"
+      - "   mix compile"
+      - "   mix test"
+      - ""
+      - "🌐 Create a Phoenix web app:"
+      - "   mix phx.new my_web_app"
+      - "   cd my_web_app"
+      - "   mix deps.get"
+      - "   mix phx.server"
+      - ""
+      - "📚 Elixir documentation: https://elixir-lang.org/docs.html"

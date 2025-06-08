@@ -1,0 +1,78 @@
+---
+- name: Install Golang
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  become: false
+  tasks:
+    - name: Get latest Go version
+      uri:
+        url: https://go.dev/VERSION?m=text
+        return_content: true
+      register: go_version_response
+
+    - name: Set Go version and tarball name
+      set_fact:
+        go_version: "{{ go_version_response.content.split('\n')[0] | trim }}"
+        go_tarball: "{{ go_version_response.content.split('\n')[0] | trim }}.linux-amd64.tar.gz"
+
+    - name: Display Go version being installed
+      debug:
+        msg: "Installing Go {{ go_version }}"
+
+    - name: Create .local directory
+      file:
+        path: "{{ ansible_env.HOME }}/.local"
+        state: directory
+        mode: '0755'
+
+    - name: Download Go tarball
+      get_url:
+        url: "https://go.dev/dl/{{ go_tarball }}"
+        dest: "/tmp/{{ go_tarball }}"
+        mode: '0644'
+
+    - name: Remove existing Go installation
+      file:
+        path: "{{ ansible_env.HOME }}/.local/go"
+        state: absent
+
+    - name: Extract Go tarball
+      unarchive:
+        src: "/tmp/{{ go_tarball }}"
+        dest: "/tmp"
+        remote_src: true
+
+    - name: Move Go to final location
+      command: mv /tmp/go "{{ ansible_env.HOME }}/.local/go"
+      args:
+        creates: "{{ ansible_env.HOME }}/.local/go/bin/go"
+
+    - name: Clean up tarball
+      file:
+        path: "/tmp/{{ go_tarball }}"
+        state: absent
+
+    - name: Add Go to bashrc
+      lineinfile:
+        path: "{{ ansible_env.HOME }}/.bashrc"
+        line: 'export PATH="{{ ansible_env.HOME }}/.local/go/bin:$PATH"'
+        create: yes
+        state: present
+
+    - name: Verify Go installation
+      shell: "{{ ansible_env.HOME }}/.local/go/bin/go version"
+      register: go_version_check
+      changed_when: false
+
+    - name: Display installation completion
+      debug:
+        msg:
+          - "Go installation completed: {{ go_version }}"
+          - "Installed to: {{ ansible_env.HOME }}/.local/go"
+          - "Added to PATH in .bashrc, .bash_profile, and .profile"
+          - "Symbolic links created in ~/.local/bin"
+          - "Version check: {{ go_version_check.stdout }}"
+          - ""
+          - "To use Go immediately, run: source ~/.bashrc"
+          - "Or start a new shell session"

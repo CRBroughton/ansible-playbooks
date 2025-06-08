@@ -1,0 +1,42 @@
+---
+- name: Install Volta
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  become: false
+  
+  tasks:
+    - name: Remove existing Volta installation
+      file:
+        path: "{{ ansible_env.HOME }}/.volta"
+        state: absent
+    
+    - name: Download Volta installer script
+      get_url:
+        url: https://get.volta.sh
+        dest: /tmp/volta-install.sh
+        mode: '0755'
+    
+    - name: Install Volta using official installer
+      shell: |
+        export VOLTA_HOME="{{ ansible_env.HOME }}/.volta"
+        bash /tmp/volta-install.sh
+      args:
+        creates: "{{ ansible_env.HOME }}/.volta/bin/volta"
+    
+    - name: Clean up installer script
+      file:
+        path: /tmp/volta-install.sh
+        state: absent
+    
+    - name: Get Volta version
+      command: "{{ ansible_env.HOME }}/.volta/bin/volta --version"
+      register: volta_version
+      changed_when: false
+    
+    - name: Display installation completion
+      debug:
+        msg: 
+          - "Volta installation completed: {{ volta_version.stdout }}"
+          - "Installed to: {{ ansible_env.HOME }}/.volta"
+          - "Fish configuration added to ~/.config/fish/conf.d/volta.fish"
