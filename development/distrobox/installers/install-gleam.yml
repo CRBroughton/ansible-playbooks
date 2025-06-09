@@ -1,0 +1,16 @@
+---
+- name: Install Gleam
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Enable frostyx/gleam COPR repository
+      command: dnf copr enable frostyx/gleam -y
+      args:
+        creates: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:frostyx:gleam.repo
+      
+    - name: Install Gleam
+      dnf:
+        name: gleam
+        state: present

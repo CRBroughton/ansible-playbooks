@@ -43,6 +43,16 @@
           - "installers/install-volta.yml"
           - "installers/install-bun.yml"
         completion_playbook: "completions/completion-nuxt.yml"
+
+      gleam:
+        name: "Gleam Development"
+        description: "Standard Gleam installation"
+        container_name: "gleam-dev"
+        container_image: "fedora:41"
+        wait_time: 30
+        additional_playbooks:
+          - "installers/install-gleam.yml"
+        completion_playbook: "completions/completion-gleam.yml"
     
     # Selected environment (can be overridden with -e env_name=laravel)
     selected_environment: "{{ env_name | default('default') }}"
